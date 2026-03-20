@@ -1,3 +1,6 @@
+import asyncio
+import uuid
+
 from dotenv import load_dotenv
 from typing import Dict, Any
 from langchain_openai import ChatOpenAI
@@ -15,6 +18,7 @@ class Scout:
         self.tools = []
         self.browser = None
         self.playwright = None
+        self.scout_id = str(uuid.uuid4())
 
 
     async def setup(self):
@@ -54,3 +58,17 @@ class Scout:
         return {
             "messages": [response],
         }
+
+    def cleanup(self):
+        """Standardized cleanup logic from Sidekick pattern."""
+        if self.browser:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.browser.close())
+                if self.playwright:
+                    loop.create_task(self.playwright.stop())
+            except RuntimeError:
+                asyncio.run(self.browser.close())
+                if self.playwright:
+                    asyncio.run(self.playwright.stop())
+            print("✅ Browser resources cleaned up.")
