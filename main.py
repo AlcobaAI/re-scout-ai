@@ -1,9 +1,12 @@
 import gradio as gr
 import asyncio
+from database import setup_db
 from graph import create_research_graph
 from langchain_core.messages import HumanMessage
 
 async def run_research(topic):
+    setup_db()
+    
     graph = await create_research_graph()
     
     inputs = {
