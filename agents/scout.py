@@ -8,7 +8,7 @@ from tools.playwright_tools import playwright_tools
 
 class Scout:
     def __init__(self):
-        load_dotenv()
+        load_dotenv(override=True)
         self.llm_with_tools = None
         self.tools = []
         self.browser = None

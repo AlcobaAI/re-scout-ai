@@ -1,10 +1,37 @@
+import os
+import serpapi
 import urllib, urllib.request, urllib.parse
 from typing import List, Optional
-from langchain.agents import Tool
+from langchain_core.tools import Tool
 from langchain_community.utilities import GoogleSerperAPIWrapper
 import xml.etree.ElementTree as ET
+from dotenv import load_dotenv
 
-serper = GoogleSerperAPIWrapper()
+load_dotenv(override=True)
+
+def google_search(query: str) -> str:
+    """Performs a Google search using SerpApi."""
+    try:
+        client = serpapi.Client(api_key=os.getenv("SERPAPI_API_KEY"))
+        results = client.search({
+            "engine": "google",
+            "q": query,
+            "google_domain": "google.com",
+            "hl": "en",
+            "gl": "us"
+        })
+        
+        # Extract snippets from organic results for the LLM to read
+        if "organic_results" in results:
+            snippets = [
+                f"Title: {res.get('title')}\nSnippet: {res.get('snippet')}\nLink: {res.get('link')}"
+                for res in results["organic_results"][:5] # Limit to top 5 to save tokens
+            ]
+            return "\n\n".join(snippets)
+        return "No relevant organic results found."
+        
+    except Exception as e:
+        return f"SerpApi Error: {str(e)}"
 
 def search_arxiv(
     query: Optional[str] = None, 
@@ -56,6 +83,7 @@ def search_arxiv(
     return results
 
 async def search_tools():
+
     return [
         Tool(
             name="search_arxiv",
@@ -78,7 +106,7 @@ async def search_tools():
         ),
         Tool(
             name="google_search",
-            func=serper.run,
+            func=google_search,
             description="Performs a Google search using the Serper API. Useful for finding general news, blog posts, or context outside of academic papers.",
             input_schema={"query": str},
             output_schema={"results": list}

@@ -1,20 +1,14 @@
 from dotenv import load_dotenv
-from typing import Dict, Any, List
-from pydantic import BaseModel, Field
+from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from state import ResearchState
+from tools.plan import SetPlan
 from tools.search_tools import search_tools
-
-class SetPlan(BaseModel):
-    """Sets the formal research plan, refined topic, and success criteria."""
-    topic: str = Field(description="A concise summary of the research goal.")
-    steps: List[str] = Field(description="Step-by-step instructions for the Scout.")
-    success_criteria: List[str] = Field(description="Measurable conditions for completion.")
 
 class Planner:
     def __init__(self):
-        load_dotenv()
+        load_dotenv(override=True)
         self.llm_with_tools = None
         self.tools = []
 
@@ -29,13 +23,17 @@ class Planner:
     
     def plan(self, state: ResearchState) -> Dict[str, Any]:
         current_topic = state.get("topic", "No topic provided")
-        
+
         system_message = f"""You are an experienced Research Lead. 
+        Your first priority is to understand the feasibility of the user's request.
+
+        1. IF the topic is broad or unfamiliar: Use 'search_arxiv' or 'google_search' to find preliminary context.
+        2. IF you have enough information: Use the 'SetPlan' tool to formalize the Research Topic, Steps, and Success Criteria.
+        3. ONCE 'SetPlan' is called and you see the result: Summarize the strategy and signal that the Scout should begin.
+
         Your goal is to refine the topic: '{current_topic}' into a concrete execution plan.
 
-        You MUST use the 'SetPlan' tool to save your findings. 
-        Break the research down into actionable steps for the Scout agent.
-        Define clear success criteria (e.g., 'Find 3 GitHub repos', 'Locate CSV files')."""
+        Do not guess. If you aren't sure if datasets exist, search first."""
         
         if state.get("feedback_on_work"):
             system_message += f"\n\nREVISION REQUIRED: {state['feedback_on_work']}"
