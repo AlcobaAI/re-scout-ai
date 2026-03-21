@@ -55,8 +55,24 @@ class Scout:
 
         response = self.llm_with_tools.invoke(full_messages)
 
+        findings = state.get("findings", [])
+
+        if hasattr(response, "tool_calls"):
+            for tool_call in response.tool_calls:
+                if tool_call["name"] == "save_dataset_found":
+                    args = tool_call["args"]
+                    finding_entry = {
+                        "title": args.get("name") or args.get("title"),
+                        "url": args.get("url"),
+                        "platform": "GitHub" if "github" in args.get("url", "").lower() else "HuggingFace" if "huggingface" in args.get("url", "").lower() else "Direct",
+                        "description": args.get("description", "")
+                    }
+                    if finding_entry not in findings:
+                        findings.append(finding_entry)
+
         return {
             "messages": [response],
+            "findings": findings
         }
 
     def cleanup(self):

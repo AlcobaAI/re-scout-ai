@@ -5,14 +5,20 @@ import pandas as pd
 from database import setup_db
 from graph import create_research_graph
 from agents.scout import Scout
+from agents.engineer import Engineer
 from langchain_core.messages import HumanMessage
 
 async def run_research(topic):
     setup_db()
     scout_inst = Scout()
     await scout_inst.setup()
-    
-    graph = await create_research_graph(scout_inst)
+    engineer_inst = Engineer()
+    await engineer_inst.setup(
+        existing_browser=scout_inst.browser, 
+        existing_playwright=scout_inst.playwright
+    )
+
+    graph = await create_research_graph(scout_inst, engineer_inst)
     
     inputs = {
         "messages": [HumanMessage(content=topic)],
@@ -90,4 +96,4 @@ with gr.Blocks(title="AI Research Lab v2.0") as demo:
             demo.load(fn=get_db_summary, outputs=[dataset_table, paper_table])
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
