@@ -16,53 +16,19 @@ async def create_research_graph(scout_agent, engineer_agent):
     builder.add_node("planner", planner_agent.plan)
     builder.add_node("scout", scout_agent.scout)
     builder.add_node("engineer", engineer_agent.work)
-    planner_tool_node = ToolNode(
-        planner_agent.tools, 
-        handle_tool_errors=handle_tool_error
-    )
-    scout_tool_node = ToolNode(
-        scout_agent.tools, 
-        handle_tool_errors=handle_tool_error
-    )
-    engineer_tool_node = ToolNode(
-        engineer_agent.tools, 
-        handle_tool_errors=handle_tool_error
-    )
-    
-    builder.add_node("planner_tools", planner_tool_node)
-    builder.add_node("scout_tools", scout_tool_node)
-    builder.add_node("engineer_tools", engineer_tool_node)
+
+    builder.add_node("planner_tools", ToolNode(planner_agent.tools, handle_tool_errors=handle_tool_error))
+    builder.add_node("scout_tools", ToolNode(scout_agent.tools, handle_tool_errors=handle_tool_error))
+    builder.add_node("engineer_tools", ToolNode(engineer_agent.tools, handle_tool_errors=handle_tool_error))
 
     builder.add_edge(START, "planner")
-    
     builder.add_edge("planner_tools", "planner")
-    builder.add_conditional_edges(
-        "planner", 
-        tools_condition, 
-        {
-            "tools": "planner_tools", 
-            "__end__": "scout"
-        }
-    )
+    builder.add_conditional_edges("planner", tools_condition, {"tools": "planner_tools", "__end__": "scout"})
 
     builder.add_edge("scout_tools", "scout")
-    builder.add_conditional_edges(
-        "scout", 
-        tools_condition, 
-        {
-            "tools": "scout_tools", 
-            "__end__": "engineer"
-        }
-    )
+    builder.add_conditional_edges("scout", tools_condition, {"tools": "scout_tools", "__end__": "engineer"})
 
     builder.add_edge("engineer_tools", "engineer")
-    builder.add_conditional_edges(
-        "engineer", 
-        tools_condition, 
-        {
-            "tools": "engineer_tools", 
-            "__end__": END
-        }
-    )
+    builder.add_conditional_edges("engineer", tools_condition, {"tools": "engineer_tools", "__end__": END})
 
     return builder.compile()
